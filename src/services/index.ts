@@ -1,22 +1,15 @@
-import { ApiPromise } from "@polkadot/api";
-import { add, template } from "lodash";
-import { Token, FixedPointNumber } from "@acala-network/sdk-core"
-import { ITuple } from "@polkadot/types/types";
-import { Balance, CurrencyId } from "@acala-network/types/interfaces";
-import { DispatchError } from "@polkadot/types/interfaces";
-import { ApiOptions } from "@polkadot/api/types";
-import { KeyringPair } from "@polkadot/keyring/types";
+import { template } from "lodash";
 
 import { Config } from "../util/config";
 import { Storage } from "../util/storage";
 import { SendConfig, MessageHandler } from "../types";
 import { TaskQueue, TaskData } from "./task-queue";
 import logger from "../util/logger";
-import { Deferred } from "../util/deferred";
-import { WalletPromise } from "@acala-network/sdk-wallet";
+import { ethers, Wallet } from "ethers";
+import { SQToken, SQToken__factory } from '@subql/contract-sdk';
 
 interface FaucetServiceConfig {
-  account: KeyringPair;
+  wallet: ethers.Wallet;
   template: Config["template"];
   config: Config["faucet"];
   storage: Storage;
@@ -32,24 +25,9 @@ interface RequestFaucetParams {
   } & Record<string, string>;
 }
 
-export function formatToReadable(
-  num: string | number,
-  decimal: number
-): number {
-  return FixedPointNumber.fromInner(num, decimal).toNumber();
-}
-
-export function formatToSendable(
-  num: string | number,
-  decimal: number
-): string {
-  return new FixedPointNumber(num, decimal).toChainData();
-}
-
 export class Service {
-  public api!: ApiPromise;
-  private wallet!: WalletPromise;
-  private account: KeyringPair;
+  private wallet!: ethers.Wallet; // was wallet promise before
+  private token: SQToken | undefined;
   private template: Config["template"];
   private config: Config["faucet"];
   private storage: Storage;
@@ -59,13 +37,13 @@ export class Service {
   private killTimer!: NodeJS.Timeout | null;
 
   constructor({
-    account,
+    wallet,
     config,
     template,
     storage,
     task,
   }: FaucetServiceConfig) {
-    this.account = account;
+    this.wallet = wallet;
     this.config = config;
     this.template = template;
     this.storage = storage;
@@ -89,26 +67,28 @@ export class Service {
     }, this.killCountdown);
   }
 
-  public async connect(options: ApiOptions) {
-    this.api = await ApiPromise.create(options);
-    this.wallet = new WalletPromise(this.api);
+  public async connect(provider: ethers.providers.JsonRpcProvider, config: Config) {
+    
+    this.token = await SQToken__factory.connect(config.faucet.contractAddress, this.wallet);
 
-    await this.api.isReady.catch(() => {
-      throw new Error("connect failed");
-    });
+    //FIXME: handle when fails to connect 
 
-    this.api.on("disconnected", this.onDisconnected);
+    // const a = await this.api.isReady.catch(() => {
+    //   throw new Error("connect failed");
+    // });
 
-    this.api.on("connected", this.onConnected);
+    // this.api.on("disconnected", this.onDisconnected);
 
-    this.task.process((task: TaskData) => {
+    // this.api.on("connected", this.onConnected);
+
+    this.task.process(async (task: TaskData): Promise<void> => {
       const { address, channel, strategy, params } = task;
       const account = channel.account;
       const channelName = channel.name;
       const sendMessage = this.getMessageHandler(channelName);
 
-      return this.sendTokens(params)
-        .then((tx: string) => {
+      return this.sendTokens(params, task.strategy)
+        .then((tx: any) => {
 
           logger.info(
             `send success, required from ${channelName}/${account} channel with address:${address} ${JSON.stringify(task.params)}`
@@ -118,9 +98,7 @@ export class Service {
 
           sendMessage(
             channel,
-            params
-	      .map((item) => `${item.token}: ${formatToReadable(item.balance,this.wallet.getToken(item.token).decimal)}`)
-              .join(", "),
+            params.map((item) => `${item.token}}`).join(", "),
             tx
           );
         })
@@ -136,109 +114,38 @@ export class Service {
     });
   }
 
-  public registMessageHander(channel: string, handler: MessageHandler) {
+  public registerMessageHandler(channel: string, handler: MessageHandler) {
     this.sendMessageHandler[channel] = handler;
   }
 
   private getMessageHandler (channel: string) {
     return this.sendMessageHandler[channel];
   }
+  
+  public async sendTokens(config: SendConfig, strategy: string) {
 
-  public async queryBalance() {
-    const result = await Promise.all(
-      this.config.assets.map((token) =>
-        (this.api as any).derive.currencies.balance(
-          this.account.address,
-          { Token: token }
-        )
-      )
-    );
-
-    return this.config.assets.map((token, index) => {
-      return {
-        token: token,
-        balance: result[index]
-          ? formatToReadable(
-              (result[index] as Balance).toString(),
-              this.wallet.getToken(token).decimal
-            )
-          : 0,
-      };
-    });
-  }
-
-  public async getChainName() {
-    return this.api.rpc.system.chain();
-  }
-
-  public async sendTokens(config: SendConfig) {
-    const deferred = new Deferred<string>();
-    const tx = this.buildTx(config);
-    const sigendTx = await tx.signAsync(this.account);
-
-    const unsub = await sigendTx
-      .send((result) => {
-        if (result.isCompleted) {
-          // extra message to ensure tx success
-          let flag = true;
-          let errorMessage: DispatchError["type"] = "";
-
-          for (const event of result.events) {
-            const { data, method, section } = event.event;
-
-            if (section === "utility" && method === "BatchInterrupted") {
-              flag = false;
-              errorMessage = "batch error";
-              break;
-            }
-
-            // if extrinsic failed
-            if (section === "system" && method === "ExtrinsicFailed") {
-              const [dispatchError] = (data as unknown) as ITuple<
-                [DispatchError]
-              >;
-
-              // get error message
-              if (dispatchError.isModule) {
-                try {
-                  const mod = dispatchError.asModule;
-                  const error = this.api.registry.findMetaError(
-                    new Uint8Array([Number(mod.index), Number(mod.error)])
-                  );
-
-                  errorMessage = `${error.section}.${error.name}`;
-                } catch (error) {
-                  // swallow error
-                  errorMessage = "Unknown error";
-                }
-              }
-              flag = false;
-              break;
-            }
-          }
-
-          if (flag) {
-            deferred.resolve(sigendTx.hash.toString());
-          } else {
-            deferred.reject(errorMessage);
-          }
-
-          unsub && unsub();
-        }
-      })
-      .catch((e) => {
-        deferred.reject(e);
+    if (strategy === 'sqt'){ 
+      if(this.token){
+        const tx = await this.token.transfer('0xB55924636Df4a8dE7f8F3D7858Ff306712109d19', ethers.utils.parseEther('55.0'));
+        const res = await tx.wait();
+        console.log(res);
+      } else {
+        //FIXME: throw exception
+      }
+      return
+    } 
+    
+    if (strategy === 'fees'){
+      config.forEach(async el => {
+        //FIXME: balance needs to be 2 point decimal
+        //FIXME: need to add message if transaction fails.
+        await this.wallet.sendTransaction({
+          to: el.dest,
+          value: ethers.utils.parseEther(el.balance),
+        })
       });
-
-    return deferred.promise;
-  }
-
-  public buildTx(config: SendConfig) {
-    return this.api.tx.utility.batchAll(
-      config.map(({ token, balance, dest }) =>
-        this.api.tx.currencies.transfer(dest, { Token: token }, balance)
-      )
-    );
+      return
+    }
   }
 
   public usage() {
@@ -247,7 +154,7 @@ export class Service {
 
   async faucet({ strategy, address, channel }: RequestFaucetParams): Promise<any> {
     logger.info(
-      `requect faucet, ${JSON.stringify(
+      `request faucet, ${JSON.stringify(
         strategy
       )}, ${address}, ${JSON.stringify(channel)}`
     );
@@ -264,7 +171,7 @@ export class Service {
     }
 
     if (!strategyDetail) {
-      throw new Error(this.getErrorMessage("NO_STRAGEGY"));
+      throw new Error(this.getErrorMessage("NO_STRATEGY"));
     }
 
     // check account limit
@@ -294,17 +201,9 @@ export class Service {
     // check build tx
     const params = strategyDetail.amounts.map((item) => ({
       token: item.asset,
-      balance: formatToSendable(item.amount, this.wallet.getToken(item.asset).decimal),
+      balance: '1000', //FIXME: use item.amount instead
       dest: address,
     }));
-
-    try {
-      this.buildTx(params);
-    } catch (e) {
-      logger.error(e);
-
-      throw new Error(this.getErrorMessage("CHECK_TX_FAILED", { error: e }));
-    }
 
     // increase account & address limit count
     try {
