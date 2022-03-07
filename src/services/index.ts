@@ -5,10 +5,12 @@ import { Storage } from "../util/storage";
 import { SendConfig, MessageHandler } from "../types";
 import { TaskQueue, TaskData } from "./task-queue";
 import logger from "../util/logger";
-import { ethers, Wallet } from "ethers";
+import { ethers } from "ethers";
 import { SQToken, SQToken__factory } from '@subql/contract-sdk';
+import { NonceManager } from "@ethersproject/experimental";
 
 interface FaucetServiceConfig {
+  nonceManager: NonceManager; 
   wallet: ethers.Wallet;
   template: Config["template"];
   config: Config["faucet"];
@@ -26,7 +28,8 @@ interface RequestFaucetParams {
 }
 
 export class Service {
-  private wallet!: ethers.Wallet; // was wallet promise before
+  private nonceManager: NonceManager; 
+  private wallet!: ethers.Wallet; 
   private token: SQToken | undefined;
   private template: Config["template"];
   private config: Config["faucet"];
@@ -37,12 +40,14 @@ export class Service {
   private killTimer!: NodeJS.Timeout | null;
 
   constructor({
+    nonceManager,
     wallet,
     config,
     template,
     storage,
     task,
   }: FaucetServiceConfig) {
+    this.nonceManager = nonceManager;
     this.wallet = wallet;
     this.config = config;
     this.template = template;
@@ -67,19 +72,8 @@ export class Service {
     }, this.killCountdown);
   }
 
-  public async connect(provider: ethers.providers.JsonRpcProvider, config: Config) {
-    
-    this.token = await SQToken__factory.connect(config.faucet.contractAddress, this.wallet);
-
-    //FIXME: handle when fails to connect 
-
-    // const a = await this.api.isReady.catch(() => {
-    //   throw new Error("connect failed");
-    // });
-
-    // this.api.on("disconnected", this.onDisconnected);
-
-    // this.api.on("connected", this.onConnected);
+  public async connect(config: Config) {
+    this.token = SQToken__factory.connect(config.faucet.contractAddress, this.wallet);
 
     this.task.process(async (task: TaskData): Promise<void> => {
       const { address, channel, strategy, params } = task;
@@ -98,7 +92,7 @@ export class Service {
 
           sendMessage(
             channel,
-            params.map((item) => `${item.token}}`).join(", "),
+            params.token,
             tx
           );
         })
@@ -122,28 +116,27 @@ export class Service {
     return this.sendMessageHandler[channel];
   }
   
-  public async sendTokens(config: SendConfig, strategy: string) {
-
+  public async sendTokens(config: SendConfig, strategy: string) { 
     if (strategy === 'sqt'){ 
       if(this.token){
-        const tx = await this.token.transfer('0xB55924636Df4a8dE7f8F3D7858Ff306712109d19', ethers.utils.parseEther('55.0'));
+        const tx = await this.token.transfer('0xB55924636Df4a8dE7f8F3D7858Ff306712109d19', ethers.utils.parseEther(config.balance));
         const res = await tx.wait();
-        console.log(res);
+        console.log(res.status);
+
+        // if (res.status === 200) {
+          //TODO: handle this
+        // }
       } else {
-        //FIXME: throw exception
+        throw new Error("unable to transfer SQT tokens")
       }
       return
     } 
     
     if (strategy === 'fees'){
-      config.forEach(async el => {
-        //FIXME: balance needs to be 2 point decimal
-        //FIXME: need to add message if transaction fails.
-        await this.wallet.sendTransaction({
-          to: el.dest,
-          value: ethers.utils.parseEther(el.balance),
-        })
-      });
+      await this.wallet.sendTransaction({
+        to: config.dest,
+        value: ethers.utils.parseEther(config.balance),
+      })
       return
     }
   }
@@ -174,6 +167,10 @@ export class Service {
       throw new Error(this.getErrorMessage("NO_STRATEGY"));
     }
 
+    //TODO: use nonce manager to prevent multiple drips to one address 
+    const nonce = await this.nonceManager.getTransactionCount();
+    console.log('nonce: ' + nonce);
+
     // check account limit
     let accountCount = 0;
     if (account && strategyDetail.checkAccount) {
@@ -198,12 +195,11 @@ export class Service {
       );
     }
 
-    // check build tx
-    const params = strategyDetail.amounts.map((item) => ({
-      token: item.asset,
-      balance: '1000', //FIXME: use item.amount instead
+    const params = {
+      token: strategyDetail.amounts.asset,
+      balance: strategyDetail.amounts.amount,
       dest: address,
-    }));
+    };
 
     // increase account & address limit count
     try {

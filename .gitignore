@@ -2,4 +2,3 @@ node_modules
 config.toml
 *.log
 dist
-todo.md

@@ -80,51 +80,37 @@ export class DiscordChannel extends ChannelBase {
         msg.reply(this.service.usage());
       }
 
-      //FIXME: repeated code
-
       if (command === "!drip-fee") {
         const address = param1;
-        try {
-          await this.service.faucet({
-            strategy: "fees",
-            address: address,
-            channel: {
-              channelId: msg.channel.id,
-              name: this.channelName,
-              account: account,
-              accountName: name,
-            },
-          });
-        } catch (e: any) {
-          msg.reply(
-            e.message
-              ? e.message
-              : this.service.getErrorMessage("COMMON_ERROR", { account })
-          );
-        }
+        this.callFaucet("fees", address, account, msg, name);
       }
 
       if (command === "!drip-sqt") {
         const address = param1;
-        try {
-          await this.service.faucet({
-            strategy: "sqt",
-            address: address,
-            channel: {
-              channelId: msg.channel.id,
-              name: this.channelName,
-              account: account,
-              accountName: name,
-            },
-          });
-        } catch (e: any) {
-          msg.reply(
-            e.message
-              ? e.message
-              : this.service.getErrorMessage("COMMON_ERROR", { account })
-          );
-        }
+        this.callFaucet("sqt", address, account, msg, name);
       }
     }
   }
+
+  async callFaucet(strategy: string, address: string, account: string, msg: Discord.Message, name: string): Promise<void>{
+    try {
+      await this.service.faucet({
+        strategy: strategy,
+        address: address,
+        channel: {
+          channelId: msg.channel.id,
+          name: this.channelName,
+          account: account,
+          accountName: name,
+        },
+      });
+    } catch (e: any) {
+      msg.reply(
+        e.message
+          ? e.message
+          : this.service.getErrorMessage("COMMON_ERROR", { account })
+      );
+    }
+
+  }  
 }

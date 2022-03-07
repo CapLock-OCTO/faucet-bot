@@ -8,6 +8,7 @@ import { Service } from "./services";
 import { DiscordChannel } from "./channel/discord";
 import { ethers, utils, Wallet } from "ethers";
 import { strict as assert } from 'assert';
+import { NonceManager } from '@ethersproject/experimental';
 
 function createWallet(provider: ethers.providers.Provider, SEED: string) {
   const hdNode = utils.HDNode.fromMnemonic(SEED).derivePath("m/44'/60'/0'/0/0");
@@ -22,8 +23,9 @@ async function run() {
 
   const storage = new Storage(config.storage);
   const task = new TaskQueue(config.task);
-  
+
   const provider = new ethers.providers.JsonRpcProvider(config.faucet.endpoint);
+
   let wallet
 
   if (provider){
@@ -32,7 +34,10 @@ async function run() {
     throw new Error('unable to connect to provider')
   }
 
+  const nonceManager = new NonceManager(wallet);
+ 
   const service = new Service({
+    nonceManager,
     wallet,
     config: config.faucet,
     template: config.template,
@@ -40,7 +45,7 @@ async function run() {
     task,
   });
 
-  await service.connect(provider, config);
+  await service.connect(config);
 
   logger.info(`✊ faucet is ready.`);
 
