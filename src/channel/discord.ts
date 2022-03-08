@@ -56,6 +56,7 @@ export class DiscordChannel extends ChannelBase {
   }
 
   async messageHandler(msg: Discord.Message) {
+    //FIXME: typing
     const channelName = (msg.channel as any).name;
     const account = msg.author.id;
     const name = msg.author.username;
@@ -64,20 +65,21 @@ export class DiscordChannel extends ChannelBase {
 
     const [command, param1] = this.getCommand(msg.content);
 
-    if (channelName !== this.config.activeChannelName && command === "!drip") {
-      if (msg.member) {
-        const guildChannels = msg.member.guild.channels.cache;
-
-        for (const [_, channel] of guildChannels) {
-          if (channel.name === this.config.activeChannelName && channel.type === "text") {
-            const textChannel = channel as Discord.TextChannel;
-            textChannel.send(`${msg.author.toString()} you can try using the \`!drip\` command here!`)
-            
-            break;
-          }
-        }
-      }
-    } else {
+    //FIXME: this logic is for pinging users in right chat when they post in wrong chat
+    // if (msg.member) {
+    //   const guildChannels = msg.member.guild.channels.cache;
+    
+    //   for (const [_, channel] of guildChannels) {
+    //     if (channel.name === this.config.activeChannelName && channel.type === "text") {
+    //       const textChannel = channel as Discord.TextChannel;
+    //       textChannel.send(`${msg.author.toString()} you can try using the \`!drip\` command here!`)
+          
+    //       break;
+    //     }
+    //   }
+    // }
+    
+    if (channelName === this.config.activeChannelName) {
       if (command === "!faucet") {
         msg.reply(this.service.usage());
       }
