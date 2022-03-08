@@ -7,7 +7,7 @@
     "sourceMap": true,                     /* Generates corresponding '.map' file. */
     "moduleResolution": "node",
     "lib": ["ES2015"],
-    "outDir": "build",
+    "outDir": "dist",
 
     /* Strict Type-Checking Options */
     "strict": true,                           /* Enable all strict type-checking options. */
@@ -27,5 +27,5 @@
 
     "esModuleInterop": true                   /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
   },
-  "exclude": ["node_modules"]
+	"exclude": ["node_modules", "dist"]
 }

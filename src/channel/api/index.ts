@@ -1,7 +1,7 @@
 import Koa from "koa";
 import bodyParser from "koa-bodyparser";
 import Router from "koa-router";
-import { queryBalances } from "./balances";
+// import { queryBalances } from "./balances";
 import { loggerMiddware } from "./middlewares/logger";
 import { Service } from "../../services";
 import { sendAssets } from "./faucet";
@@ -29,7 +29,7 @@ export default async function (config: ApiConfig) {
   router.get("/ping", async (ctx) => (ctx.body = "pong!"));
 
   // query assets balance
-  router.get("/balances", queryBalances(config.service));
+  // router.get("/balances", queryBalances(config.service));
 
   // send tokens
   router.post("/faucet", sendAssets(config.service, config.storage, config.config));

@@ -11,13 +11,14 @@ export interface Config {
   faucet: {
     endpoint: string;
     assets: string[];
+    contractAddress: string;
     account: {
       mnemonic: string;
     };
     strategy: {
       [k in string]: {
         checkAccount: boolean;
-        amounts: { asset: string; amount: number }[];
+        amounts: { asset: string; amount: string };
         limit: number;
         frequency: [string, OpUnitType];
       };
@@ -30,11 +31,6 @@ export interface Config {
   channel: {
     api: {
       port: number | number;
-    };
-    matrix: {
-      enable: boolean;
-      token: string;
-      userId: string;
     };
     discord: {
       enable: boolean;

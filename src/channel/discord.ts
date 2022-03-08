@@ -21,7 +21,6 @@ export class DiscordChannel extends ChannelBase {
     this.config = config.config;
     this.service = config.service;
 
-    // create matrix client
     this.client = new Discord.Client();
 
     this.sendSuccessMessage = this.sendSuccessMessage.bind(this);
@@ -30,7 +29,7 @@ export class DiscordChannel extends ChannelBase {
   async start() {
     await this.client.login(this.config.token);
 
-    this.service.registMessageHander(this.channelName, this.sendSuccessMessage);
+    this.service.registerMessageHandler(this.channelName, this.sendSuccessMessage);
     this.client.on("message", (msg) => {
       this.messageHandler(msg);
     });
@@ -43,7 +42,7 @@ export class DiscordChannel extends ChannelBase {
   ) {
     const channel = (this.client.channels.cache.get(
       channelInfo.channelId
-    ) as any) as Discord.TextChannel;
+    ) as unknown) as Discord.TextChannel;
 
     channel.send(
       this.service.getMessage("success", {
@@ -81,41 +80,37 @@ export class DiscordChannel extends ChannelBase {
         msg.reply(this.service.usage());
       }
 
-      if (command === "!balance") {
-        const balances = await this.service.queryBalance();
-
-        msg.reply(
-          this.service.getMessage("balance", {
-            account: "",
-            balance: balances
-              .map((item) => `${item.token}: ${item.balance}`)
-              .join(", "),
-          })
-        );
+      if (command === "!drip-fee") {
+        const address = param1;
+        this.callFaucet("fees", address, account, msg, name);
       }
 
-      if (command === "!drip") {
+      if (command === "!drip-sqt") {
         const address = param1;
-
-        try {
-          await this.service.faucet({
-            strategy: "normal",
-            address: address,
-            channel: {
-              channelId: msg.channel.id,
-              name: this.channelName,
-              account: account,
-              accountName: name,
-            },
-          });
-        } catch (e) {
-          msg.reply(
-            e.message
-              ? e.message
-              : this.service.getErrorMessage("COMMON_ERROR", { account })
-          );
-        }
+        this.callFaucet("sqt", address, account, msg, name);
       }
     }
   }
+
+  async callFaucet(strategy: string, address: string, account: string, msg: Discord.Message, name: string): Promise<void>{
+    try {
+      await this.service.faucet({
+        strategy: strategy,
+        address: address,
+        channel: {
+          channelId: msg.channel.id,
+          name: this.channelName,
+          account: account,
+          accountName: name,
+        },
+      });
+    } catch (e: any) {
+      msg.reply(
+        e.message
+          ? e.message
+          : this.service.getErrorMessage("COMMON_ERROR", { account })
+      );
+    }
+
+  }  
 }

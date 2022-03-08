@@ -1,7 +1,3 @@
-import { Keyring, WsProvider } from "@polkadot/api";
-import { assert } from "@polkadot/util";
-import { waitReady } from "@polkadot/wasm-crypto";
-import { options } from "@acala-network/api";
 
 import { loadConfig } from "./util/config";
 import logger from "./util/logger";
@@ -9,8 +5,15 @@ import { Storage } from "./util/storage";
 import { TaskQueue } from "./services/task-queue";
 import api from "./channel/api";
 import { Service } from "./services";
-import { MatrixChannel } from "./channel/matrix";
 import { DiscordChannel } from "./channel/discord";
+import { ethers, utils, Wallet } from "ethers";
+import { strict as assert } from 'assert';
+import { NonceManager } from '@ethersproject/experimental';
+
+function createWallet(provider: ethers.providers.Provider, SEED: string) {
+  const hdNode = utils.HDNode.fromMnemonic(SEED).derivePath("m/44'/60'/0'/0/0");
+  return new Wallet(hdNode, provider);
+}
 
 async function run() {
   const config = loadConfig();
@@ -18,44 +21,37 @@ async function run() {
   assert(config.faucet.account.mnemonic, "mnemonic need");
   assert(config.faucet.endpoint, "endpoint need");
 
-  await waitReady();
-
-  const keyring = new Keyring({ type: "sr25519" });
-  const account = keyring.addFromMnemonic(config.faucet.account.mnemonic);
   const storage = new Storage(config.storage);
   const task = new TaskQueue(config.task);
 
+  const provider = new ethers.providers.JsonRpcProvider(config.faucet.endpoint);
+
+  let wallet
+
+  if (provider){
+    wallet = createWallet(provider, config.faucet.account.mnemonic); 
+  } else {
+    throw new Error('unable to connect to provider')
+  }
+
+  const nonceManager = new NonceManager(wallet);
+ 
   const service = new Service({
-    account,
-    storage,
-    task,
+    nonceManager,
+    wallet,
     config: config.faucet,
     template: config.template,
+    storage,
+    task,
   });
 
-  const provider = new WsProvider(config.faucet.endpoint);
+  await service.connect(config);
 
-  await service.connect(options({ provider }));
-
-  const chainName = await service.getChainName();
-
-  logger.info(`✊ connected to ${chainName}, faucet is ready.`);
+  logger.info(`✊ faucet is ready.`);
 
   api({ config: config.channel.api, service, storage }).then(() => {
-    logger.info(`🚀 faucet api launced at port:${config.channel.api.port}.`);
+    logger.info(`🚀 faucet api launched at port:${config.channel.api.port}.`);
   });
-
-  if (config.channel.matrix.enable) {
-    const matrix = new MatrixChannel({
-      config: config.channel.matrix,
-      storage,
-      service,
-    });
-
-    await matrix.start().then(() => {
-      logger.info(`🚀 matrix channel launced success`);
-    });
-  }
 
   if (config.channel.discord.enable) {
     const discord = new DiscordChannel({
@@ -65,7 +61,7 @@ async function run() {
     });
 
     await discord.start().then(() => {
-      logger.info(`🚀 discord channel launced success`);
+      logger.info(`🚀 discord channel launched success`);
     });
   }
 }
