@@ -38,7 +38,8 @@ export class DiscordChannel extends ChannelBase {
   sendSuccessMessage(
     channelInfo: Record<string, string>,
     amount: string,
-    tx: string
+    token: string,
+    address: string,
   ) {
     const channel = (this.client.channels.cache.get(
       channelInfo.channelId
@@ -46,9 +47,10 @@ export class DiscordChannel extends ChannelBase {
 
     channel.send(
       this.service.getMessage("success", {
-        amount,
-        tx,
         account: channelInfo.accountName,
+        amount: amount,
+        token: token,
+        address: address
       })
     );
   }
