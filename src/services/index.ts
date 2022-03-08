@@ -92,8 +92,9 @@ export class Service {
 
           sendMessage(
             channel,
+            params.balance,
             params.token,
-            tx
+            params.dest
           );
         })
         .catch(async (e) => {
@@ -133,10 +134,14 @@ export class Service {
     } 
     
     if (strategy === 'fees'){
-      await this.wallet.sendTransaction({
+      const res = await this.wallet.sendTransaction({
         to: config.dest,
         value: ethers.utils.parseEther(config.balance),
       })
+      //TODO: handle
+      // if( res.something === ){
+      //   handle
+      // }
       return
     }
   }
@@ -169,7 +174,6 @@ export class Service {
 
     //TODO: use nonce manager to prevent multiple drips to one address 
     const nonce = await this.nonceManager.getTransactionCount();
-    console.log('nonce: ' + nonce);
 
     // check account limit
     let accountCount = 0;
@@ -196,8 +200,8 @@ export class Service {
     }
 
     const params = {
-      token: strategyDetail.amounts.asset,
-      balance: strategyDetail.amounts.amount,
+      token: strategyDetail.asset,
+      balance: strategyDetail.amount,
       dest: address,
     };
 
