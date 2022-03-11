@@ -18,8 +18,7 @@ export interface Config {
     strategy: {
       [k in string]: {
         checkAccount: boolean;
-        asset: string;
-        amount: string;
+        amounts: { asset: string; amount: string }[];
         limit: number;
         frequency: [string, OpUnitType];
       };

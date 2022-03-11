@@ -90,12 +90,14 @@ export class Service {
 
           if (!sendMessage) return;
 
-          sendMessage(
-            channel,
-            params.balance,
-            params.token,
-            params.dest
-          );
+          params.forEach(el => {
+            sendMessage(
+              channel,
+              el.balance,
+              el.token,
+              el.dest
+            );
+          });
         })
         .catch(async (e) => {
           logger.error(e);
@@ -118,39 +120,47 @@ export class Service {
   }
   
   public async sendTokens(config: SendConfig, strategy: string) { 
-    if (strategy === 'sqt'){ 
-      if(this.token){
-        const tx = await this.token.transfer('0xB55924636Df4a8dE7f8F3D7858Ff306712109d19', ethers.utils.parseEther(config.balance));
-        const res = await tx.wait();
-        console.log(res.status);
 
+    config.forEach(async el => {
+     if (el.token === 'SQT'){ 
+      if(this.token){
+        const tx = await this.token.transfer('0xB55924636Df4a8dE7f8F3D7858Ff306712109d19', el.balance);
+        const res = await tx.wait();
+        //TODO: Handle response
         // if (res.status === 200) {
-          //TODO: handle this
         // }
       } else {
-        throw new Error("unable to transfer SQT tokens")
+        throw new Error("unable to connect with Contract address")
       }
       return
     } 
     
-    if (strategy === 'fees'){
+    if (strategy === 'FEE_TOKENS'){
       const res = await this.wallet.sendTransaction({
-        to: config.dest,
-        value: ethers.utils.parseEther(config.balance),
+        to: el.dest,
+        value: ethers.utils.parseEther(el.balance),
       })
-      //TODO: handle
+      //TODO: Handle response
       // if( res.something === ){
-      //   handle
       // }
       return
-    }
+    } 
+    });
   }
 
   public usage() {
     return this.template.usage;
   }
 
-  async faucet({ strategy, address, channel }: RequestFaucetParams): Promise<any> {
+  async queryBalance(): Promise<string> {
+    const fee_balance = await this.wallet.getBalance();
+    const address = await this.wallet.getAddress();
+    const sqt_balance = await this.token?.balanceOf(address);
+
+    return `FEE_TOKEN: ${fee_balance.toString()}, SQT: ${sqt_balance ? sqt_balance.toString() : 'N/A'}`
+  }
+
+  async faucet({ strategy, address, channel }: RequestFaucetParams): Promise<void> {
     logger.info(
       `request faucet, ${JSON.stringify(
         strategy
@@ -199,11 +209,11 @@ export class Service {
       );
     }
 
-    const params = {
-      token: strategyDetail.asset,
-      balance: strategyDetail.amount,
+    const params = strategyDetail.amounts.map((item) => ({
+      token: item.asset,
+      balance: item.amount,
       dest: address,
-    };
+    }));
 
     // increase account & address limit count
     try {
@@ -217,14 +227,12 @@ export class Service {
     }
 
     try {
-      const result = await this.task.insert({
+      await this.task.insert({
         address,
         strategy,
         channel,
         params
       });
-
-      return result;
     } catch (e) {
       logger.error(e);
 
