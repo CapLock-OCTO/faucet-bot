@@ -404,7 +404,7 @@
     "@opencensus/core" "^0.0.8"
     uuid "^3.2.1"
 
-"@openzeppelin/contracts-upgradeable@^4.3.3":
+"@openzeppelin/contracts-upgradeable@^4.5.2":
   version "4.5.2"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.5.2.tgz#90d9e47bacfd8693bfad0ac8a394645575528d05"
   integrity sha512-xgWZYaPlrEOQo3cBj97Ufiuv79SPd8Brh4GcFYhPgb6WvAq4ppz8dWKL6h+jLAK01rUqMRp/TS9AdXgAeNvCLA==
@@ -462,12 +462,12 @@
   dependencies:
     debug "^4.3.1"
 
-"@subql/contract-sdk@^0.1.1-36":
-  version "0.1.1-36"
-  resolved "https://registry.yarnpkg.com/@subql/contract-sdk/-/contract-sdk-0.1.1-36.tgz#0318c173cdd931804adf1b51ef580d79cbc17372"
-  integrity sha512-u8jVFnljAS/EWuV6hn23Q9WEmxWP1bkPpognIgKp6iOVBMXrF8/xkEcregCw37WeWt260O4447aVKFJBM/K0rA==
+"@subql/contract-sdk@^0.1.1-47":
+  version "0.1.1-52"
+  resolved "https://registry.yarnpkg.com/@subql/contract-sdk/-/contract-sdk-0.1.1-52.tgz#c9acfe05c7e5b0c355a3104f5c5ad9733c777d16"
+  integrity sha512-pXTc1hYQNGVHTwF6R1q6WthGmr4wp+jQeX88NaGy9voxWyQdeZ3O+zR7kE4u172Wueg95I4FVDJ3uHjRpLJGqw==
   dependencies:
-    "@openzeppelin/contracts-upgradeable" "^4.3.3"
+    "@openzeppelin/contracts-upgradeable" "^4.5.2"
     dotenv "^10.0.0"
     fs "^0.0.1-security"
 
