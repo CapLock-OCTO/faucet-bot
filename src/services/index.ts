@@ -5,7 +5,7 @@ import { Storage } from "../util/storage";
 import { SendConfig, MessageHandler } from "../types";
 import { TaskQueue, TaskData } from "./task-queue";
 import logger from "../util/logger";
-import { ethers } from "ethers";
+import { ethers, utils} from "ethers";
 import { SQToken, SQToken__factory } from '@subql/contract-sdk';
 import { NonceManager } from "@ethersproject/experimental";
 
@@ -157,7 +157,7 @@ export class Service {
     const address = await this.wallet.getAddress();
     const sqt_balance = await this.token?.balanceOf(address);
 
-    return `FEE_TOKEN: ${fee_balance.toString()}, SQT: ${sqt_balance ? sqt_balance.toString() : 'N/A'}`
+    return `FEE_TOKEN: ${(+ethers.utils.formatEther(fee_balance)).toFixed(4)}, SQT: ${sqt_balance ? (+ethers.utils.formatEther(sqt_balance)).toFixed(4) : 'N/A' }`
   }
 
   async faucet({ strategy, address, channel }: RequestFaucetParams): Promise<void> {
