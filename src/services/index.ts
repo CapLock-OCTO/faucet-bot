@@ -124,7 +124,7 @@ export class Service {
     config.forEach(async el => {
      if (el.token === 'SQT'){ 
       if(this.token){
-        const tx = await this.token.transfer('0xB55924636Df4a8dE7f8F3D7858Ff306712109d19', el.balance);
+        const tx = await this.token.transfer(el.dest, el.balance);
         const res = await tx.wait();
         //TODO: Handle response
         // if (res.status === 200) {
