@@ -5,12 +5,12 @@ import { Storage } from "../util/storage";
 import { SendConfig, MessageHandler } from "../types";
 import { TaskQueue, TaskData } from "./task-queue";
 import logger from "../util/logger";
-import { ethers, utils} from "ethers";
+import { ethers, utils } from "ethers";
 import { SQToken, SQToken__factory } from '@subql/contract-sdk';
 import { NonceManager } from "@ethersproject/experimental";
 
 interface FaucetServiceConfig {
-  nonceManager: NonceManager; 
+  nonceManager: NonceManager;
   wallet: ethers.Wallet;
   template: Config["template"];
   config: Config["faucet"];
@@ -28,8 +28,8 @@ interface RequestFaucetParams {
 }
 
 export class Service {
-  private nonceManager: NonceManager; 
-  private wallet!: ethers.Wallet; 
+  private nonceManager: NonceManager;
+  private wallet!: ethers.Wallet;
   private token: SQToken | undefined;
   private template: Config["template"];
   private config: Config["faucet"];
@@ -115,37 +115,41 @@ export class Service {
     this.sendMessageHandler[channel] = handler;
   }
 
-  private getMessageHandler (channel: string) {
+  private getMessageHandler(channel: string) {
     return this.sendMessageHandler[channel];
   }
-  
-  public async sendTokens(config: SendConfig, strategy: string) { 
 
-    config.forEach(async el => {
-     if (el.token === 'SQT'){ 
-      if(this.token){
-        const tx = await this.token.transfer(el.dest, el.balance);
-        const res = await tx.wait();
-        //TODO: Handle response
-        // if (res.status === 200) {
-        // }
-      } else {
-        throw new Error("unable to connect with Contract address")
+  public async sendTokens(config: SendConfig, strategy: string) {
+    for (let i = 0; i < config.length; i++) {
+      const el = config[i];
+
+      if (el.token === 'SQT') {
+        if (this.token) {
+          const tx = await this.token.transfer(el.dest, ethers.utils.parseEther(el.balance));
+          await tx.wait(1);
+
+          //TODO: Handle response
+          // if (res.status === 200) {
+          // }
+        } else {
+          throw new Error("unable to connect with Contract address")
+        }
+        return
       }
-      return
-    } 
-    
-    if (strategy === 'FEE_TOKENS'){
-      const res = await this.wallet.sendTransaction({
-        to: el.dest,
-        value: ethers.utils.parseEther(el.balance),
-      })
-      //TODO: Handle response
-      // if( res.something === ){
-      // }
-      return
-    } 
-    });
+
+      if (strategy === 'FEE_TOKENS') {
+        const tx = await this.wallet.sendTransaction({
+          to: el.dest,
+          value: ethers.utils.parseEther(el.balance),
+        });
+        await tx.wait(1);
+
+        //TODO: Handle response
+        // if( res.something === ){
+        // }
+        return
+      }
+    }
   }
 
   public usage() {
@@ -157,7 +161,7 @@ export class Service {
     const address = await this.wallet.getAddress();
     const sqt_balance = await this.token?.balanceOf(address);
 
-    return `FEE_TOKEN: ${(+ethers.utils.formatEther(fee_balance)).toFixed(4)}, SQT: ${sqt_balance ? (+ethers.utils.formatEther(sqt_balance)).toFixed(4) : 'N/A' }`
+    return `FEE_TOKEN: ${(+ethers.utils.formatEther(fee_balance)).toFixed(4)}, SQT: ${sqt_balance ? (+ethers.utils.formatEther(sqt_balance)).toFixed(4) : 'N/A'}`
   }
 
   async faucet({ strategy, address, channel }: RequestFaucetParams): Promise<void> {
