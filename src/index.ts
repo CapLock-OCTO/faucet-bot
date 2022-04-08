@@ -29,7 +29,8 @@ async function run() {
   let wallet
 
   if (provider){
-    wallet = createWallet(provider, config.faucet.account.mnemonic); 
+    wallet = createWallet(provider, config.faucet.account.mnemonic);
+    wallet = wallet.connect(provider);
   } else {
     throw new Error('unable to connect to provider')
   }

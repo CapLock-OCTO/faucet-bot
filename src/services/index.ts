@@ -84,6 +84,7 @@ export class Service {
       return this.sendTokens(params, task.strategy)
         .then((tx: any) => {
 
+          //TODO: need to handle this properly
           logger.info(
             `send success, required from ${channelName}/${account} channel with address:${address} ${JSON.stringify(task.params)}`
           );
@@ -126,28 +127,28 @@ export class Service {
       if (el.token === 'SQT') {
         if (this.token) {
           const tx = await this.token.transfer(el.dest, ethers.utils.parseEther(el.balance));
-          await tx.wait(1);
+          const res = await tx.wait(1);
 
-          //TODO: Handle response
-          // if (res.status === 200) {
-          // }
+          if(!res){
+            throw new Error('unable to send sqt')
+          }
+          //TODO: should return confirmation so I can send back to channel
+
         } else {
           throw new Error("unable to connect with Contract address")
         }
-        return
-      }
-
-      if (strategy === 'FEE_TOKENS') {
+      } else if (el.token === 'FEE_TOKENS'){
+        
         const tx = await this.wallet.sendTransaction({
           to: el.dest,
           value: ethers.utils.parseEther(el.balance),
         });
-        await tx.wait(1);
+        
+        const res = await tx.wait(1);
 
-        //TODO: Handle response
-        // if( res.something === ){
-        // }
-        return
+        if(!res){
+          throw new Error("unable to send fee_token")
+        }
       }
     }
   }
