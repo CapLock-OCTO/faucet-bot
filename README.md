@@ -1,15 +1,21 @@
-### Faucet Bot For Acala
+### Faucet Bot
 
 ### Environment Required
 1. nodejs
 2. redis
-3. pm2
 
-### Start with pm2
+### Start redis
 ```bash
 cd $PROJECT_ROOT
+docker-compose up
+```
 
+### Edit config
+
+you'll need to customise config.toml
+
+#### Start faucet
+```
 yarn
-
-pm2 start -- environment.json
+yarn dev
 ```
