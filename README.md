@@ -12,7 +12,7 @@ docker-compose up
 
 ### Edit config
 
-you'll need to customise config.toml
+Get access to config.toml and have in in $PROJECT_ROOT.
 
 #### Start faucet
 ```
