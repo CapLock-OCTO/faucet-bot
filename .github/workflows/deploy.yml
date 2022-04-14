@@ -41,7 +41,7 @@ jobs:
           push: true
           platforms: arm64,amd64
           file: ./Dockerfile
-          tags: onfinality/indexer-ssl-proxy:rev-${{steps.vars.outputs.sha_short}},onfinality/indexer-ssl-proxy:latest
+          tags: onfinality/faucet-bot:rev-${{steps.vars.outputs.sha_short}},onfinality/faucet-bot:latest
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
