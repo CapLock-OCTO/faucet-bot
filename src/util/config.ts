@@ -47,7 +47,7 @@ export interface Config {
   };
 }
 
-export const loadConfig = (path = "config.toml"): Config => {
+export const loadConfig = (path = "/app/config/config.toml"): Config => {
   try {
     const content = readFileSync(path, { encoding: "utf-8" });
     const config = toml.parse(content);

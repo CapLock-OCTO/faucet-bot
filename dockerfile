@@ -15,3 +15,4 @@ RUN yarn install --prod
 COPY --from=builder /app/dist /app/dist
 
 ENTRYPOINT ["/sbin/tini", "--", "node", "dist/src/index"]
+
