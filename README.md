@@ -12,7 +12,7 @@ docker-compose up
 
 ### Edit config
 
-Get access to config.toml and place it in project root (is slightly modified from forked config).
+Get access to config.toml and place it in project root (structure is slightly modified from forked config).
 
 #### Start faucet
 ```
