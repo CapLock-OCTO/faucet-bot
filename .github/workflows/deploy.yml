@@ -40,7 +40,7 @@ jobs:
         with:
           push: true
           file: ./Dockerfile
-          tags: onfinality/faucet-bot:rev-${{steps.vars.outputs.sha_short}},onfinality/faucet-bot:latest
+          tags: onfinality/faucet:rev-${{steps.vars.outputs.sha_short}},onfinality/faucet:latest
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
