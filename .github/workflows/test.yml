@@ -25,6 +25,12 @@ jobs:
       run: |
         aws sts get-caller-identity
         aws eks describe-cluster --name sy-cluster
+  
+    - name: deploy to cluster
+      uses: steebchen/kubectl@v2.0.0
+      with: 
+        config: ${{ secrets.KUBE_CONFIG_DATA }}
+        command: set image --record deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test
     
     - name: Checkout 
       uses: actions/checkout@v2
