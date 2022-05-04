@@ -13,19 +13,32 @@ jobs:
     name: "test-pipeline"
     runs-on: ubuntu-latest
     steps:
-
-    
+    # gets AWS credentials using OpenID
     - name: Configure AWS credentials from Test account
       uses: aws-actions/configure-aws-credentials@v1
       with:
         role-to-assume: arn:aws:iam::902066978923:role/test-role-github-actions
         aws-region: ap-southeast-2
-  
-    - name: deploy to cluster
-      uses: steebchen/kubectl@v2.0.0
-      with: 
-        config: ${{ secrets.KUBE_CONFIG_DATA }}
-        command: set image --record deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test
+
+    # get k8s cluster config
+    - uses: jakejarvis/s3-sync-action@master
+      with:
+        args: s3://kube-deploy-config
+      env:
+        AWS_S3_BUCKET: kube-deploy-config
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        SOURCE_DIR: './dev'      # optional: defaults to entire repository
+        DEST_DIR: 'config'
+
+    - name: list dir
+      run: ls 
+
+    # - name: deploy to cluster
+    #   uses: steebchen/kubectl@v2.0.0
+    #   with: 
+    #     config: ${{ secrets.KUBE_CONFIG_DATA }}
+    #     command: set image --record deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test
     
     - name: Checkout 
       uses: actions/checkout@v2
