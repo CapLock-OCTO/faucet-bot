@@ -45,7 +45,7 @@ jobs:
         kubectl: 1.23.0
         command: |
           echo "Deploying to dev"
-          kubectl set image deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=onfinality/faucet:rev-${{steps.vars.outputs.sha_short}} --kubeconfig="sy.config.yml"
+          kubectl set image deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=onfinality/faucet:rev-${{steps.vars.outputs.sha_short}} --kubeconfig="configs/dev.sy.config.yml"
 
 
     # - name: deploy to cluster
