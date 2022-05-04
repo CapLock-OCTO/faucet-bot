@@ -19,7 +19,7 @@ jobs:
       with:
         role-to-assume: arn:aws:iam::902066978923:role/test-role-github-actions
         aws-region: ap-southeast-2
-
+        
     # get k8s cluster config
     - uses: jakejarvis/s3-sync-action@master
       with:
