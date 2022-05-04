@@ -25,24 +25,24 @@ jobs:
         aws s3 sync s3://kube-deploy-config configs
         
     # get k8s cluster config
-    - uses: jakejarvis/s3-sync-action@master
-      with:
-        args: s3://kube-deploy-config
-      env:
-        AWS_S3_BUCKET: kube-deploy-config
-        AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
-        SOURCE_DIR: './dev'      # optional: defaults to entire repository
-        DEST_DIR: 'config'
+    # - uses: jakejarvis/s3-sync-action@master
+    #   with:
+    #     args: s3://kube-deploy-config
+    #   env:
+    #     AWS_S3_BUCKET: kube-deploy-config
+    #     AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+    #     AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+    #     SOURCE_DIR: './dev'      # optional: defaults to entire repository
+    #     DEST_DIR: 'config'
 
-    - name: list dir
-      run: ls 
+    - name: list dev config
+      run: ls configs/dev
 
-    # - name: deploy to cluster
-    #   uses: steebchen/kubectl@v2.0.0
-    #   with: 
-    #     config: ${{ secrets.KUBE_CONFIG_DATA }}
-    #     command: set image --record deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test
+    - name: deploy to cluster
+      uses: steebchen/kubectl@v2.0.0
+      with: 
+        config: configs/dev/sy.config.yml | base64
+        command: set image --record deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test
     
     - name: Checkout 
       uses: actions/checkout@v2
