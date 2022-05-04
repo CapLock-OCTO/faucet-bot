@@ -20,11 +20,6 @@ jobs:
       with:
         role-to-assume: arn:aws:iam::902066978923:role/test-role-github-actions
         aws-region: ap-southeast-2
-
-    - name: test aws command
-      run: |
-        aws sts get-caller-identity
-        aws eks describe-cluster --name sy-cluster
   
     - name: deploy to cluster
       uses: steebchen/kubectl@v2.0.0
