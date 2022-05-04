@@ -43,11 +43,11 @@ jobs:
       run: |
         aws sts get-caller-identity
 
-    # - name: deploy to cluster
-    #   uses: steebchen/kubectl@v2.0.0
-    #   with: 
-    #     config: configs/dev/sy.config.yml | base64
-    #     command: set image --record deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test
+    - name: deploy to cluster
+      uses: steebchen/kubectl@v2.0.0
+      with: 
+        config: configs/dev/sy.config.yml | base64
+        command: set image --record deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test
     
     - name: Checkout 
       uses: actions/checkout@v2
