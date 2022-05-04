@@ -39,14 +39,23 @@ jobs:
       run: | 
         ls configs/dev
     
-    - name: deploy to dev
-      uses: stefanprodan/kube-tools@v1
-      with:
-        kubectl: 1.23.0
-        command: |
-          echo "Deploying to dev"
-          kubectl config current-context --kubeconfig="configs/dev/sy.config.yml"
-          kubectl config view --kubeconfig="configs/dev/sy.config.yml"
+    - name: Deploy to Kubernetes cluster                                                                            
+      uses: kodermax/kubectl-aws-eks@master                                                                         
+      env:                                                                                                          
+        RELEASE_IMAGE: onfinality/faucet:rev-${{steps.vars.outputs.sha_short}}
+        KUBE_NAMESPACE: subquery-apps
+        DEPLOYMENT_NAME: subquery-faucet-bot-deployment
+      with:                                                                                                         
+        args: set image deployment/${DEPLOYMENT_NAME} faucet=${{ env.RELEASE_IMAGE }} -n $KUBE_NAMESPACE --kubeconfig="configs/dev/sy.config.yml"
+        
+    # - name: deploy to dev
+    #   uses: stefanprodan/kube-tools@v1
+    #   with:
+    #     kubectl: 1.23.0
+    #     command: |
+    #       echo "Deploying to dev"
+    #       kubectl config current-context --kubeconfig="configs/dev/sy.config.yml"
+    #       kubectl config view --kubeconfig="configs/dev/sy.config.yml"
           
     #kubectl set image deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=onfinality/faucet:rev-${{steps.vars.outputs.sha_short}} --kubeconfig="configs/dev/sy.config.yml"
 
