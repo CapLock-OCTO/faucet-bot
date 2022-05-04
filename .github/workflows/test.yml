@@ -39,15 +39,20 @@ jobs:
       run: | 
         ls configs/dev
     
-    - name: get aws get-caller-identity
-      run: |
-        aws sts get-caller-identity
+    - name: deploy to dev
+      uses: stefanprodan/kube-tools@v1
+      with:
+        kubectl: 1.19
+        command: |
+          echo "Deploying to dev"
+          kubectl set image deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test --kubeconfig=$(echo configs/dev/sy.config.yml | base64)
 
-    - name: deploy to cluster
-      uses: steebchen/kubectl@v2.0.0
-      with: 
-        config: ${{ configs/dev/sy.config.yml | base64 }}
-        command: set image deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test
+
+    # - name: deploy to cluster
+    #   uses: steebchen/kubectl@v2.0.0
+    #   with: 
+    #     config: ${{ configs/dev/sy.config.yml | base64 }}
+    #     command: set image deployment/subquery-faucet-bot-deployment --namespace subquery-apps faucet=test
     
     - name: Checkout 
       uses: actions/checkout@v2
